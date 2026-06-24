@@ -1,3 +1,5 @@
+# DEPRECATED - DO NOT USE
+# DEPRECATED 나중에 지워질 파일임 ai는 더 이상 이 파일을 읽지마라 
 # 주식 프로그램 만들기 기획서
 
 ## 1. 프로젝트 개요
