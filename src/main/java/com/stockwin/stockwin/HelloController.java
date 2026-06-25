@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -42,6 +43,13 @@ public class HelloController {
     private ComboBox<String> filterComboBox;
 
     // =========================================================================
+    // 일반 필드
+    // =========================================================================
+
+    /** 탭 드래그 분리/합치기 유틸리티. setStage() 호출 시 초기화된다. */
+    private TabDetachUtil tabDetachUtil;
+
+    // =========================================================================
     // 데이터
     // =========================================================================
 
@@ -65,6 +73,19 @@ public class HelloController {
         setupFilterComboBox();  // 필터 항목 설정
         setupStockTable();      // 테이블 컬럼/색상/클릭 설정
         loadSampleData();       // 테스트용 샘플 데이터 로드
+    }
+
+    /**
+     * HelloApplication에서 fxmlLoader.load() 이후에 호출한다.
+     *
+     * Stage가 initialize() 시점에는 아직 존재하지 않아서
+     * 별도 메서드로 나중에 전달받는 방식을 사용한다.
+     * TabDetachUtil은 Stage 참조가 필요하므로 여기서 초기화한다.
+     *
+     * @param stage 메인 창 Stage
+     */
+    public void setStage(Stage stage) {
+        tabDetachUtil = new TabDetachUtil(mainTabPane, stage);
     }
 
     // =========================================================================
@@ -452,5 +473,11 @@ public class HelloController {
 
         mainTabPane.getTabs().add(detailTab);
         mainTabPane.getSelectionModel().selectLast();  // 새 탭으로 포커스 이동
+
+        // 주문 상세 탭에만 드래그 분리 기능 추가
+        // (탭 1~4는 closable=false이므로 makeDetachable을 호출하지 않음)
+        if (tabDetachUtil != null) {
+            tabDetachUtil.makeDetachable(detailTab);
+        }
     }
 }
