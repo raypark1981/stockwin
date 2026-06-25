@@ -1,16 +1,161 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!--
+    FXML은 JavaFX UI를 XML로 선언하는 방식이다.
+    Java 코드 대신 XML로 화면 구조를 작성하면 UI와 로직을 분리할 수 있다.
+-->
+
+<!-- 필요한 JavaFX 클래스들을 import한다 (Java의 import와 같은 역할) -->
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
-
 <?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.stockwin.stockwin.HelloController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 
-    <Label fx:id="welcomeText"/>
-    <Button text="Hello!" onAction="#onHelloButtonClick"/>
-</VBox>
+<!--
+    루트 레이아웃: BorderPane
+    - top/bottom/left/right/center 5개 영역으로 화면을 나눈다
+    - fx:controller : 이 fxml과 연결된 컨트롤러 클래스
+    - prefWidth/prefHeight : 창의 기본 크기 (픽셀)
+-->
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.stockwin.stockwin.HelloController"
+            prefWidth="1200.0"
+            prefHeight="800.0">
+
+    <!-- 가운데 영역에 TabPane 배치 -->
+    <center>
+
+        <!--
+            TabPane: 여러 탭을 담는 컨테이너
+            - fx:id : 컨트롤러에서 @FXML로 참조할 때 사용하는 식별자
+            - tabClosingPolicy="ALL_TABS" : 각 탭의 closable 속성에 따라 닫기 버튼 표시 여부 결정
+        -->
+        <TabPane fx:id="mainTabPane" tabClosingPolicy="ALL_TABS">
+
+            <!-- ============================================================ -->
+            <!-- 탭 1: 전일 상친 목록                                          -->
+            <!-- ============================================================ -->
+            <!--
+                closable="false" : 고정 탭 (사용자가 닫을 수 없음)
+                탭 내부는 별도 BorderPane으로 구성: 상단(툴바) + 가운데(테이블)
+            -->
+            <Tab text="전일 상친 목록" closable="false">
+                <content>
+
+                    <!--
+                        탭 내부 레이아웃도 BorderPane 사용
+                        - top: 새로고침 버튼 + 필터
+                        - center: 종목 테이블
+                    -->
+                    <BorderPane>
+
+                        <!-- 상단 툴바 영역 -->
+                        <top>
+                            <!--
+                                HBox: 자식 컴포넌트를 가로로 나열하는 레이아웃
+                                - spacing : 자식 간격 (px)
+                                - alignment : 자식 정렬 방향
+                            -->
+                            <HBox spacing="10" alignment="CENTER_LEFT"
+                                  style="-fx-background-color: #F5F5F5; -fx-border-color: #DDDDDD; -fx-border-width: 0 0 1 0;">
+                                <padding>
+                                    <Insets top="8" right="12" bottom="8" left="12"/>
+                                </padding>
+
+                                <!--
+                                    새로고침 버튼
+                                    - fx:id : 컨트롤러에서 참조용
+                                    - onAction : 클릭 시 호출할 컨트롤러 메서드명 (# 접두사 필수)
+                                -->
+                                <Button fx:id="refreshButton"
+                                        text="↻ 새로고침"
+                                        onAction="#onRefreshClick"/>
+
+                                <!-- 구분 레이블 -->
+                                <Label text="필터:"/>
+
+                                <!--
+                                    ComboBox: 드롭다운 선택 박스
+                                    - fx:id : 컨트롤러에서 항목을 코드로 추가할 예정
+                                    - promptText : 아무것도 선택하지 않았을 때 표시되는 힌트 텍스트
+                                -->
+                                <ComboBox fx:id="filterComboBox" promptText="전체"/>
+
+                            </HBox>
+                        </top>
+
+                        <!-- 가운데: 종목 목록 테이블 -->
+                        <center>
+                            <!--
+                                TableView: 행/열 형태의 데이터 목록 컴포넌트
+                                - fx:id : 컨트롤러에서 컬럼 정의, 데이터 바인딩에 사용
+                                - 컬럼(TableColumn)은 컨트롤러에서 코드로 생성해서 추가함
+                                - 가로 스크롤: 컬럼 너비 합이 테이블 너비보다 크면 자동으로 생김
+                            -->
+                            <TableView fx:id="stockTable"/>
+                        </center>
+
+                    </BorderPane>
+
+                </content>
+            </Tab>
+
+            <!-- ============================================================ -->
+            <!-- 탭 2: 내 보유 목록                                            -->
+            <!-- ============================================================ -->
+            <Tab text="내 보유 목록" closable="false">
+                <content>
+                    <StackPane>
+                        <Label text="프로그램이 매수한 보유 종목 목록이 표시됩니다." />
+                    </StackPane>
+                </content>
+            </Tab>
+
+            <!-- ============================================================ -->
+            <!-- 탭 3: 주문 예상 목록                                          -->
+            <!-- ============================================================ -->
+            <Tab text="주문 예상 목록" closable="false">
+                <content>
+                    <StackPane>
+                        <Label text="오늘 주문 예정 후보 종목 목록이 표시됩니다." />
+                    </StackPane>
+                </content>
+            </Tab>
+
+            <!-- ============================================================ -->
+            <!-- 탭 4: 체결/주문 목록                                          -->
+            <!-- ============================================================ -->
+            <Tab text="체결/주문 목록" closable="false">
+                <content>
+                    <StackPane>
+                        <Label text="오늘 발생한 주문과 체결 내역이 표시됩니다." />
+                    </StackPane>
+                </content>
+            </Tab>
+
+            <!-- ============================================================ -->
+            <!-- 탭 5: 주문 상세 (동적 탭 샘플)                                -->
+            <!-- ============================================================ -->
+            <!--
+                closable="true" : 사용자가 직접 닫을 수 있는 동적 탭
+                실제 운영 시 이 탭은 제거하고, 종목 클릭 시 코드로 동적 생성할 예정
+            -->
+            <Tab text="주문 상세 [샘플]" closable="true">
+                <content>
+                    <StackPane>
+                        <Label text="종목 클릭 시 해당 종목의 상세 탭이 열립니다. (종목코드 기준 중복 방지)" />
+                    </StackPane>
+                </content>
+            </Tab>
+
+        </TabPane>
+
+    </center>
+
+</BorderPane>
