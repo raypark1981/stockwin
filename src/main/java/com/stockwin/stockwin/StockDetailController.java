@@ -4,12 +4,15 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 
 import java.text.NumberFormat;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -40,11 +43,46 @@ public class StockDetailController {
     // @FXML 주입: 매수 영역
     // =========================================================================
     @FXML private Label lblBuyStartPrice;
-    @FXML private Label lblBuyExpectedPrice;
-    @FXML private Label lblBuyExpectedVolume;
+    @FXML private Label lblBuyCurrentPrice;
     @FXML private Label lblBuyOrderStatus;
     @FXML private Label lblBuyFilled;
     @FXML private Label lblAvgBuyPrice;
+
+    // 가격 기준 버튼 (토글 그룹으로 동작)
+    @FXML private Button btnBaseCurrentPrice;
+    @FXML private Button btnBaseStartPrice;
+    @FXML private Button btnBuyDirect;
+    @FXML private TextField tfBuyPrice;
+
+    // 예상 매수 요약 박스
+    @FXML private Label lblBuyMode;
+    @FXML private Label lblCalcPrice;
+    @FXML private Label lblCalcQty;
+    @FXML private Label lblCalcAmount;
+
+    // 예수금 / 잔액 / 주문가능수량
+    @FXML private Label lblDeposit;
+    @FXML private Label lblRemaining;
+    @FXML private Label lblMaxQty;
+
+    // 수량 입력 + 증감 버튼
+    @FXML private TextField tfBuyQty;
+    @FXML private Button btnQtyUp;
+    @FXML private Button btnQtyDown;
+
+    private int selectedBuyRatePct = 5; // 수익률 % 버튼 선택값 (기본 5%)
+
+    // 수익률 % 버튼 (토글 그룹으로 동작)
+    @FXML private Button btnBuy3Pct;
+    @FXML private Button btnBuy5Pct;
+    @FXML private Button btnBuy7Pct;
+    @FXML private Button btnBuy10Pct;
+
+    // 손실방어율 % 버튼 (토글 그룹으로 동작)
+    @FXML private Button btnDefense3Pct;
+    @FXML private Button btnDefense5Pct;
+    @FXML private Button btnDefense7Pct;
+    @FXML private Button btnDefense10Pct;
 
     // =========================================================================
     // @FXML 주입: 매도 영역
@@ -88,9 +126,213 @@ public class StockDetailController {
     // 초기화
     // =========================================================================
 
+    // 가격 기준 버튼 스타일 (청회색 계열)
+    private static final String BASE_BTN_OFF =
+            "-fx-background-color: #ECEFF1; -fx-text-fill: #546E7A; -fx-font-size: 11px; -fx-padding: 2 8 2 8;";
+    private static final String BASE_BTN_ON =
+            "-fx-background-color: #37474F; -fx-text-fill: #FFFFFF; -fx-font-size: 11px; -fx-padding: 2 8 2 8;" +
+            "-fx-border-color: #263238; -fx-border-width: 2; -fx-border-radius: 3;";
+
+    // 수익률 버튼 스타일 (파랑 계열)
+    private static final String RATE_BTN_OFF =
+            "-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;";
+    private static final String RATE_BTN_ON =
+            "-fx-background-color: #1565C0; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;" +
+            "-fx-border-color: #0D47A1; -fx-border-width: 2; -fx-border-radius: 3;";
+
+    // 손실방어율 버튼 스타일 (주황 계열)
+    private static final String DEFENSE_BTN_OFF =
+            "-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold;";
+    private static final String DEFENSE_BTN_ON =
+            "-fx-background-color: #E65100; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;" +
+            "-fx-border-color: #BF360C; -fx-border-width: 2; -fx-border-radius: 3;";
+
     @FXML
     public void initialize() {
-        setupHokaTables();  // 호가 테이블 컬럼 정의
+        setupHokaTables();        // 호가 테이블 컬럼 정의
+        setupBasePriceButtons();  // 가격 기준 버튼 토글 설정
+        setupBuyRateButtons();    // 수익률 % 버튼 토글 설정
+        setupDefenseButtons();    // 손실방어율 % 버튼 토글 설정
+        setupQtyButtons();        // 수량 ▲▼ 버튼
+    }
+
+    /**
+     * 수익률 % 버튼을 토글 그룹으로 설정한다.
+     * 버튼을 클릭하면 해당 버튼만 활성 스타일로 바뀌고, 나머지는 비활성 스타일로 초기화된다.
+     *
+     * List.of()는 불변 리스트를 만드는 Java 9+ 팩토리 메서드.
+     * 람다 안에서 allBtns를 캡처할 때 effectively final이어야 하는 제약을 만족한다.
+     */
+    private void setupBasePriceButtons() {
+        List<Button> allBtns = List.of(btnBaseCurrentPrice, btnBaseStartPrice, btnBuyDirect);
+
+        allBtns.forEach(btn -> btn.setStyle(BASE_BTN_OFF));
+        btnBaseCurrentPrice.setStyle(BASE_BTN_ON); // 기본값: 현재가
+        tfBuyPrice.setDisable(true);               // 기본값: 비활성
+
+        // 가격/수량 변경 시 요약 재계산
+        tfBuyPrice.textProperty().addListener((obs, oldVal, newVal) -> recalcBuyPrice());
+        tfBuyQty.textProperty().addListener((obs, oldVal, newVal) -> recalcSummary());
+
+        applyBasePrice(btnBaseCurrentPrice);        // 기본값: 현재가 가격 채움
+
+        allBtns.forEach(btn -> btn.setOnAction(e -> {
+            allBtns.forEach(b -> b.setStyle(BASE_BTN_OFF));
+            btn.setStyle(BASE_BTN_ON);
+            tfBuyPrice.setDisable(btn != btnBuyDirect);
+            if (btn != btnBuyDirect) {
+                applyBasePrice(btn);
+            } else {
+                tfBuyPrice.clear();
+                lblBuyMode.setText("직접 입력");
+                lblCalcPrice.setText("-");
+            }
+        }));
+    }
+
+    private void applyBasePrice(Button activeBtn) {
+        String mode;
+        if (activeBtn == btnBaseCurrentPrice) {
+            tfBuyPrice.setText(lblBuyCurrentPrice.getText());
+            mode = "현재가 대비(수익률)";
+        } else {
+            tfBuyPrice.setText(lblBuyStartPrice.getText());
+            mode = "시작 예상가 대비(수익률)";
+        }
+        lblBuyMode.setText(mode);
+        recalcBuyPrice();
+    }
+
+    /** 기준가(tfBuyPrice) × (1 - 수익률%) → lblCalcPrice 갱신 후 요약 재계산 */
+    private void recalcBuyPrice() {
+        String raw = tfBuyPrice.getText().replaceAll("[^0-9]", "");
+        if (raw.isEmpty()) {
+            lblCalcPrice.setText("-");
+            recalcSummary();
+            return;
+        }
+        try {
+            long base = Long.parseLong(raw);
+            long calc = Math.round(base * (1.0 - selectedBuyRatePct / 100.0));
+            lblCalcPrice.setText(numFmt.format(calc));
+        } catch (NumberFormatException ex) {
+            lblCalcPrice.setText("-");
+        }
+        recalcSummary();
+    }
+
+    /** lblCalcPrice × tfBuyQty → lblCalcAmount, lblCalcQty, lblRemaining 갱신 */
+    private void recalcSummary() {
+        String priceRaw   = lblCalcPrice.getText().replaceAll("[^0-9]", "");
+        String qtyRaw     = tfBuyQty.getText().replaceAll("[^0-9]", "");
+        String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
+        long deposit = depositRaw.isEmpty() ? 0 : Long.parseLong(depositRaw);
+
+        // 주문가능수량: 예수금 ÷ 계산가격 (수량과 무관하게 항상 갱신)
+        if (!priceRaw.isEmpty()) {
+            try {
+                long price = Long.parseLong(priceRaw);
+                lblMaxQty.setText(price > 0 ? numFmt.format(deposit / price) + " 주" : "-");
+            } catch (NumberFormatException ex) {
+                lblMaxQty.setText("-");
+            }
+        } else {
+            lblMaxQty.setText("-");
+        }
+
+        if (priceRaw.isEmpty() || qtyRaw.isEmpty()) {
+            lblCalcQty.setText(qtyRaw.isEmpty() ? "-" : qtyRaw);
+            lblCalcAmount.setText("-");
+            lblRemaining.setText(numFmt.format(deposit) + " 원");
+            return;
+        }
+        try {
+            long price     = Long.parseLong(priceRaw);
+            long qty       = Long.parseLong(qtyRaw);
+            long amount    = price * qty;
+            long remaining = deposit - amount;
+
+            lblCalcQty.setText(numFmt.format(qty));
+            lblCalcAmount.setText(numFmt.format(amount) + " 원");
+            lblRemaining.setText(numFmt.format(remaining) + " 원");
+        } catch (NumberFormatException ex) {
+            lblCalcQty.setText("-");
+            lblCalcAmount.setText("-");
+        }
+    }
+
+    private void setupBuyRateButtons() {
+        List<Button> allBtns = List.of(btnBuy3Pct, btnBuy5Pct, btnBuy7Pct, btnBuy10Pct);
+        List<Integer>    rates = List.of(3, 5, 7, 10);
+
+        allBtns.forEach(btn -> btn.setStyle(RATE_BTN_OFF));
+        btnBuy5Pct.setStyle(RATE_BTN_ON);
+
+        for (int i = 0; i < allBtns.size(); i++) {
+            int rate = rates.get(i);
+            Button btn = allBtns.get(i);
+            btn.setOnAction(e -> {
+                allBtns.forEach(b -> b.setStyle(RATE_BTN_OFF));
+                btn.setStyle(RATE_BTN_ON);
+                selectedBuyRatePct = rate;
+                recalcBuyPrice();
+            });
+        }
+    }
+
+    private void setupDefenseButtons() {
+        List<Button> allBtns = List.of(btnDefense3Pct, btnDefense5Pct, btnDefense7Pct, btnDefense10Pct);
+
+        // 초기 상태: 모두 비활성 후 7%만 활성
+        allBtns.forEach(btn -> btn.setStyle(DEFENSE_BTN_OFF));
+        btnDefense7Pct.setStyle(DEFENSE_BTN_ON);
+
+        // 각 버튼 클릭 시 → 자신만 활성, 나머지 비활성
+        allBtns.forEach(btn -> btn.setOnAction(e -> {
+            allBtns.forEach(b -> b.setStyle(DEFENSE_BTN_OFF));
+            btn.setStyle(DEFENSE_BTN_ON);
+        }));
+    }
+
+    private void setupQtyButtons() {
+        tfBuyQty.setTextFormatter(new javafx.scene.control.TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (!newText.matches("[0-9]*")) return null;
+            if (newText.isEmpty()) return change;
+
+            String priceRaw   = lblCalcPrice.getText().replaceAll("[^0-9]", "");
+            String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
+            if (!priceRaw.isEmpty() && !depositRaw.isEmpty()) {
+                try {
+                    long price   = Long.parseLong(priceRaw);
+                    long deposit = Long.parseLong(depositRaw);
+                    long qty     = Long.parseLong(newText);
+                    if (price > 0 && qty * price > deposit) return null; // 예수금 초과 차단
+                } catch (NumberFormatException ignored) {}
+            }
+            return change;
+        }));
+        btnQtyUp.setOnAction(e -> adjustQty(1));
+        btnQtyDown.setOnAction(e -> adjustQty(-1));
+    }
+
+    private void adjustQty(int delta) {
+        String raw = tfBuyQty.getText().replaceAll("[^0-9]", "");
+        long qty = raw.isEmpty() ? 0 : Long.parseLong(raw);
+        qty = Math.max(0, qty + delta);
+
+        // ▲ 버튼에도 예수금 초과 제한 적용
+        String priceRaw   = lblCalcPrice.getText().replaceAll("[^0-9]", "");
+        String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
+        if (!priceRaw.isEmpty() && !depositRaw.isEmpty()) {
+            try {
+                long price   = Long.parseLong(priceRaw);
+                long deposit = Long.parseLong(depositRaw);
+                if (price > 0 && qty * price > deposit) return;
+            } catch (NumberFormatException ignored) {}
+        }
+
+        tfBuyQty.setText(String.valueOf(qty));
     }
 
     /**
@@ -239,11 +481,13 @@ public class StockDetailController {
 
         // ── 매수 영역 ──
         lblBuyStartPrice.setText("57,000");
-        lblBuyExpectedPrice.setText("57,200");
-        lblBuyExpectedVolume.setText("12,345");
+        lblBuyCurrentPrice.setText("57,200");
         lblBuyOrderStatus.setText("대기");
         lblBuyFilled.setText("미체결");
         lblAvgBuyPrice.setText("-");
+
+        // 가격 설정 후 기본 선택(현재가 + 수익률 기본값)으로 lblCalcPrice 갱신
+        applyBasePrice(btnBaseCurrentPrice);
 
         // ── 매도 영역 ──
         lblHoldQty.setText("0 주");

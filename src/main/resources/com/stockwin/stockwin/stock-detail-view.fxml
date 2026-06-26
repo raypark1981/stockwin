@@ -148,26 +148,23 @@
                     <Label text="시작 예상가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="0"  GridPane.columnIndex="0"/>
                     <Label fx:id="lblBuyStartPrice" text="-"                       GridPane.rowIndex="0"  GridPane.columnIndex="1"/>
 
-                    <Label text="예상체결가"      style="-fx-text-fill: #666666;" GridPane.rowIndex="1"  GridPane.columnIndex="0"/>
-                    <Label fx:id="lblBuyExpectedPrice" text="-"
+                    <Label text="현재가"          style="-fx-text-fill: #666666;" GridPane.rowIndex="1"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyCurrentPrice" text="-"
                            style="-fx-font-weight: bold; -fx-text-fill: #CC0000;"  GridPane.rowIndex="1"  GridPane.columnIndex="1"/>
 
-                    <Label text="예상체결량"      style="-fx-text-fill: #666666;" GridPane.rowIndex="2"  GridPane.columnIndex="0"/>
-                    <Label fx:id="lblBuyExpectedVolume" text="-"                   GridPane.rowIndex="2"  GridPane.columnIndex="1"/>
-
                     <!-- columnSpan="2": 두 컬럼을 합쳐서 가로 전체에 걸침 -->
-                    <Separator GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+                    <Separator GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
 
-                    <Label text="매수 주문 상태"  style="-fx-text-fill: #666666;" GridPane.rowIndex="4"  GridPane.columnIndex="0"/>
-                    <Label fx:id="lblBuyOrderStatus" text="-"                     GridPane.rowIndex="4"  GridPane.columnIndex="1"/>
+                    <Label text="매수 주문 상태"  style="-fx-text-fill: #666666;" GridPane.rowIndex="3"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyOrderStatus" text="-"                     GridPane.rowIndex="3"  GridPane.columnIndex="1"/>
 
-                    <Label text="매수 체결 여부"  style="-fx-text-fill: #666666;" GridPane.rowIndex="5"  GridPane.columnIndex="0"/>
-                    <Label fx:id="lblBuyFilled" text="-"                          GridPane.rowIndex="5"  GridPane.columnIndex="1"/>
+                    <Label text="매수 체결 여부"  style="-fx-text-fill: #666666;" GridPane.rowIndex="4"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyFilled" text="-"                          GridPane.rowIndex="4"  GridPane.columnIndex="1"/>
 
-                    <Label text="평균 매수가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="6"  GridPane.columnIndex="0"/>
+                    <Label text="평균 매수가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="5"  GridPane.columnIndex="0"/>
                     <Label fx:id="lblAvgBuyPrice" text="-"
                            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #CC0000;"
-                           GridPane.rowIndex="6"  GridPane.columnIndex="1"/>
+                           GridPane.rowIndex="5"  GridPane.columnIndex="1"/>
                 </GridPane>
 
                 <!--
@@ -188,15 +185,15 @@
                         tfBuyPrice: % 버튼 클릭 시 계산된 가격 자동 채움 / 직접 입력도 가능
                     -->
                     <HBox spacing="6" alignment="CENTER_LEFT">
-                        <Label text="가격 지정" style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
-                        <Button fx:id="btnBaseCurrentPrice" text="현재가 대비"
-                                style="-fx-background-color: #37474F; -fx-text-fill: #FFFFFF;
+                        <Label text="가격 지정 대비" style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
+                        <Button fx:id="btnBaseCurrentPrice" text="현재가"
+                                style="-fx-background-color: #ECEFF1; -fx-text-fill: #546E7A;
                                        -fx-font-size: 11px; -fx-padding: 2 8 2 8;"/>
-                        <Button fx:id="btnBaseStartPrice" text="시작예상가 대비"
-                                style="-fx-background-color: #546E7A; -fx-text-fill: #FFFFFF;
+                        <Button fx:id="btnBaseStartPrice" text="시작예상가"
+                                style="-fx-background-color: #ECEFF1; -fx-text-fill: #546E7A;
                                        -fx-font-size: 11px; -fx-padding: 2 8 2 8;"/>
                         <Button fx:id="btnBuyDirect" text="직접입력"
-                                style="-fx-background-color: #4A148C; -fx-text-fill: #FFFFFF;
+                                style="-fx-background-color: #ECEFF1; -fx-text-fill: #546E7A;
                                        -fx-font-size: 11px; -fx-padding: 2 8 2 8;"/>
                         <TextField fx:id="tfBuyPrice" promptText="가격 입력"
                                    prefWidth="100"
@@ -235,12 +232,37 @@
                     <!-- 구분선 -->
                     <Separator/>
 
-                    <!-- 예수금 표시 -->
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="예수금"
-                               style="-fx-text-fill: #555555; -fx-font-size: 11px; -fx-min-width: 60;"/>
-                        <Label fx:id="lblDeposit" text="0 원"
-                               style="-fx-font-weight: bold; -fx-text-fill: #1565C0; -fx-font-size: 12px;"/>
+                    <!-- 예수금 | 잔액 : 좌우 반반 배치 -->
+                    <HBox alignment="CENTER_LEFT">
+                        <!-- 왼쪽: 예수금 -->
+                        <HBox spacing="6" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                            <Label text="예수금"
+                                   style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
+                            <Label fx:id="lblDeposit" text="1,000,000 원"
+                                   style="-fx-font-weight: bold; -fx-text-fill: #1565C0; -fx-font-size: 12px;"/>
+                        </HBox>
+
+                        <Separator orientation="VERTICAL"/>
+
+                        <!-- 가운데: 잔액 (예수금 - 예상매수금액) -->
+                        <HBox spacing="6" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                            <padding><Insets left="8"/></padding>
+                            <Label text="잔액"
+                                   style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
+                            <Label fx:id="lblRemaining" text="0 원"
+                                   style="-fx-font-weight: bold; -fx-text-fill: #388E3C; -fx-font-size: 12px;"/>
+                        </HBox>
+
+                        <Separator orientation="VERTICAL"/>
+
+                        <!-- 오른쪽: 주문가능수량 (예수금 ÷ 계산가격) -->
+                        <HBox spacing="6" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                            <padding><Insets left="8"/></padding>
+                            <Label text="주문가능수량"
+                                   style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
+                            <Label fx:id="lblMaxQty" text="-"
+                                   style="-fx-font-weight: bold; -fx-text-fill: #6A1B9A; -fx-font-size: 12px;"/>
+                        </HBox>
                     </HBox>
 
                     <!-- 수량 입력 + ▲▼ 버튼 -->
