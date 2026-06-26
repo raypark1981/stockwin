@@ -63,7 +63,7 @@ public class TabDetachUtil {
             dragStartPos[1] = e.getScreenY();
         });
 
-        // 마우스 뗌: 이동 거리를 계산해서 50px 이상이면 분리
+        // 마우스 뗌: 이동 거리를 계산해서 50px 이상이면 드래그 분리
         headerLabel.setOnMouseReleased(e -> {
             double dx = Math.abs(e.getScreenX() - dragStartPos[0]);
             double dy = Math.abs(e.getScreenY() - dragStartPos[1]);
@@ -71,6 +71,20 @@ public class TabDetachUtil {
             if (dx > 50 || dy > 50) {
                 detachTab(tab, title, e.getScreenX(), e.getScreenY());
                 e.consume(); // 분리가 발생한 경우에만 이벤트 소비
+            }
+        });
+
+        // 더블클릭: 탭 분리
+        // getClickCount() == 2 : 빠르게 두 번 클릭한 경우
+        //
+        // tabPane.getTabs().contains(tab) 가드가 필요한 이유:
+        //   드래그로 분리될 때 MOUSE_RELEASED → MOUSE_CLICKED 순으로 두 이벤트가 모두 발생한다.
+        //   RELEASED에서 이미 탭이 제거됐는데 CLICKED까지 실행되면 두 번 분리를 시도하게 된다.
+        //   탭이 이미 없는지 확인해서 중복 실행을 방지한다.
+        headerLabel.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2 && tabPane.getTabs().contains(tab)) {
+                detachTab(tab, title, e.getScreenX(), e.getScreenY());
+                e.consume();
             }
         });
     }
@@ -102,10 +116,10 @@ public class TabDetachUtil {
 
         HBox toolbar = new HBox(mergeBtn);
         toolbar.setStyle(
-                "-fx-padding: 6 10 6 10;" +
-                "-fx-background-color: #EEEEEE;" +
-                "-fx-border-color: #CCCCCC;" +
-                "-fx-border-width: 0 0 1 0;"
+                        "-fx-padding: 6 10 6 10;" +
+                        "-fx-background-color: #EEEEEE;" +
+                        "-fx-border-color: #CCCCCC;" +
+                        "-fx-border-width: 0 0 1 0;"
         );
 
         // BorderPane: 상단(툴바) + 가운데(탭 컨텐츠)

@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!--
+    주문 목록 상세 탭 레이아웃.
+
+    구역 구성 (우선순위 순):
+      ① 상단: 종목 기본 정보 (항상 보여야 하는 핵심 데이터)
+      ② 중단: 매수 영역 / 매도 영역 / 호가 영역 (HBox로 3등분)
+-->
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.stockwin.stockwin.StockDetailController">
+
+    <!-- ================================================================ -->
+    <!-- ① 상단: 종목 기본 정보                                            -->
+    <!-- 배경을 어둡게 해서 나머지 영역과 시각적으로 구분                      -->
+    <!-- ================================================================ -->
+    <top>
+        <VBox style="-fx-background-color: #1E1E2E;">
+            <padding>
+                <Insets top="12" right="16" bottom="10" left="16"/>
+            </padding>
+
+            <!-- 1행: 핵심 정보 (종목코드, 종목명, 현재가, 등락률, 종목상태) -->
+            <HBox spacing="20" alignment="CENTER_LEFT">
+
+                <VBox>
+                    <Label text="종목코드" style="-fx-text-fill: #777777; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblStockCode" text="------"
+                           style="-fx-text-fill: #BBBBBB; -fx-font-weight: bold;"/>
+                </VBox>
+
+                <VBox>
+                    <Label text="종목명" style="-fx-text-fill: #777777; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblStockName" text="------"
+                           style="-fx-text-fill: #FFFFFF; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                </VBox>
+
+                <Separator orientation="VERTICAL" style="-fx-background-color: #444444;"/>
+
+                <VBox>
+                    <Label text="현재가" style="-fx-text-fill: #777777; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblCurrentPrice" text="---,---"
+                           style="-fx-text-fill: #FF4444; -fx-font-size: 22px; -fx-font-weight: bold;"/>
+                </VBox>
+
+                <VBox>
+                    <Label text="등락률" style="-fx-text-fill: #777777; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblChangeRate" text="+00.00%"
+                           style="-fx-text-fill: #FF4444; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+                </VBox>
+
+                <Separator orientation="VERTICAL" style="-fx-background-color: #444444;"/>
+
+                <VBox>
+                    <Label text="종목 상태" style="-fx-text-fill: #777777; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblStatus" text="후보"
+                           style="-fx-background-color: #555555; -fx-text-fill: #FFFFFF;
+                                  -fx-padding: 3 12 3 12; -fx-background-radius: 4;
+                                  -fx-font-weight: bold;"/>
+                </VBox>
+
+            </HBox>
+
+            <!-- 행 간격 -->
+            <VBox style="-fx-padding: 4 0 0 0;"/>
+
+            <!-- 2행: 보조 시세 정보 -->
+            <HBox spacing="24" alignment="CENTER_LEFT">
+
+                <VBox>
+                    <Label text="전일종가" style="-fx-text-fill: #555555; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblPrevClose" text="---,---" style="-fx-text-fill: #AAAAAA;"/>
+                </VBox>
+                <VBox>
+                    <Label text="시가" style="-fx-text-fill: #555555; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblOpen" text="---,---" style="-fx-text-fill: #AAAAAA;"/>
+                </VBox>
+                <VBox>
+                    <Label text="고가" style="-fx-text-fill: #555555; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblHigh" text="---,---" style="-fx-text-fill: #FF8888;"/>
+                </VBox>
+                <VBox>
+                    <Label text="저가" style="-fx-text-fill: #555555; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblLow" text="---,---" style="-fx-text-fill: #8888FF;"/>
+                </VBox>
+                <VBox>
+                    <Label text="거래량" style="-fx-text-fill: #555555; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblVolume" text="--,---,---" style="-fx-text-fill: #AAAAAA;"/>
+                </VBox>
+                <VBox>
+                    <Label text="거래대금" style="-fx-text-fill: #555555; -fx-font-size: 10px;"/>
+                    <Label fx:id="lblTurnover" text="---억" style="-fx-text-fill: #AAAAAA;"/>
+                </VBox>
+
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ================================================================ -->
+    <!-- ② 중단: 3개 구역 (매수 | 매도 | 호가)                             -->
+    <!--                                                                    -->
+    <!-- HBox로 3개 VBox를 가로로 나열한다.                                  -->
+    <!-- HBox.hgrow="ALWAYS" : 각 VBox가 남은 공간을 균등하게 나눠 가짐       -->
+    <!-- SplitPane 대신 HBox를 쓰는 이유:                                    -->
+    <!--   SplitPane은 두 번째 자식 이후가 렌더링되지 않는 문제가 있어서        -->
+    <!--   HBox로 대체한다.                                                  -->
+    <!-- ================================================================ -->
+    <center>
+        <HBox>
+
+            <!-- ──────────────────────────────────────────────────────── -->
+            <!-- 매수 영역                                                 -->
+            <!-- HBox.hgrow="ALWAYS" + prefWidth="0" : 3패널 균등 분할    -->
+            <!-- ──────────────────────────────────────────────────────── -->
+            <VBox HBox.hgrow="ALWAYS" prefWidth="0"
+                  style="-fx-background-color: #F6FFF6;">
+
+                <Label text="▼  매수 영역"
+                       maxWidth="Infinity"
+                       style="-fx-background-color: #C8E6C9; -fx-text-fill: #2E7D32;
+                              -fx-font-weight: bold; -fx-font-size: 13px;
+                              -fx-padding: 6 12 6 12;"/>
+
+                <!--
+                    GridPane: 2열 구조 (필드명 | 값)
+                    columnConstraints로 각 열 너비와 정렬 지정
+                -->
+                <GridPane hgap="16" vgap="10">
+                    <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="110" halignment="RIGHT"/>
+                        <ColumnConstraints minWidth="100" halignment="LEFT" hgrow="ALWAYS"/>
+                    </columnConstraints>
+
+                    <Label text="시작 예상가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="0"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyStartPrice" text="-"                       GridPane.rowIndex="0"  GridPane.columnIndex="1"/>
+
+                    <Label text="예상체결가"      style="-fx-text-fill: #666666;" GridPane.rowIndex="1"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyExpectedPrice" text="-"
+                           style="-fx-font-weight: bold; -fx-text-fill: #CC0000;"  GridPane.rowIndex="1"  GridPane.columnIndex="1"/>
+
+                    <Label text="예상체결량"      style="-fx-text-fill: #666666;" GridPane.rowIndex="2"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyExpectedVolume" text="-"                   GridPane.rowIndex="2"  GridPane.columnIndex="1"/>
+
+                    <!-- columnSpan="2": 두 컬럼을 합쳐서 가로 전체에 걸침 -->
+                    <Separator GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+
+                    <Label text="매수 주문 상태"  style="-fx-text-fill: #666666;" GridPane.rowIndex="4"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyOrderStatus" text="-"                     GridPane.rowIndex="4"  GridPane.columnIndex="1"/>
+
+                    <Label text="매수 체결 여부"  style="-fx-text-fill: #666666;" GridPane.rowIndex="5"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblBuyFilled" text="-"                          GridPane.rowIndex="5"  GridPane.columnIndex="1"/>
+
+                    <Label text="평균 매수가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="6"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblAvgBuyPrice" text="-"
+                           style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #CC0000;"
+                           GridPane.rowIndex="6"  GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <!--
+                    스페이서: VBox.vgrow="ALWAYS" 로 남은 수직 공간을 모두 차지한다.
+                    결과적으로 아래 구분선 + 버튼 영역 전체가 패널 맨 아래에 고정된다.
+                -->
+                <VBox VBox.vgrow="ALWAYS"/>
+
+                <!-- 전체 너비 구분선 -->
+                <Separator/>
+
+                <!-- ── 매수 버튼 영역 ── -->
+                <VBox spacing="8">
+                    <padding><Insets top="10" right="12" bottom="12" left="12"/></padding>
+
+                    <!--
+                        가격 기준 선택 + 직접입력 한 행.
+                        tfBuyPrice: % 버튼 클릭 시 계산된 가격 자동 채움 / 직접 입력도 가능
+                    -->
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <Label text="가격 지정" style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
+                        <Button fx:id="btnBaseCurrentPrice" text="현재가 대비"
+                                style="-fx-background-color: #37474F; -fx-text-fill: #FFFFFF;
+                                       -fx-font-size: 11px; -fx-padding: 2 8 2 8;"/>
+                        <Button fx:id="btnBaseStartPrice" text="시작예상가 대비"
+                                style="-fx-background-color: #546E7A; -fx-text-fill: #FFFFFF;
+                                       -fx-font-size: 11px; -fx-padding: 2 8 2 8;"/>
+                        <Button fx:id="btnBuyDirect" text="직접입력"
+                                style="-fx-background-color: #4A148C; -fx-text-fill: #FFFFFF;
+                                       -fx-font-size: 11px; -fx-padding: 2 8 2 8;"/>
+                        <TextField fx:id="tfBuyPrice" promptText="가격 입력"
+                                   prefWidth="100"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold;
+                                          -fx-text-fill: #CC0000; -fx-alignment: CENTER-RIGHT;"/>
+                    </HBox>
+
+                    <!--
+                        가격 지정 % 버튼.
+                        HBox.hgrow="ALWAYS" + maxWidth="Infinity" : 4버튼이 너비 균등 분할
+                    -->
+                    <HBox spacing="6">
+                        <Label text="수익률" style="-fx-text-fill: #1565C0; -fx-font-size: 11px;"/>
+                        <Button fx:id="btnBuy3Pct"  text=" 3%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnBuy5Pct"  text=" 5%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnBuy7Pct"  text=" 7%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnBuy10Pct" text="10%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #1565C0; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                    </HBox>
+
+
+                    <HBox spacing="6">
+                        <Label text="손실방어율" style="-fx-text-fill: #E65100; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnDefense3Pct"  text=" 3%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnDefense5Pct"  text=" 5%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnDefense7Pct"  text=" 7%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnDefense10Pct" text="10%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #E65100; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                    </HBox>
+                    <!-- 구분선 -->
+                    <Separator/>
+
+                    <!-- 예수금 표시 -->
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <Label text="예수금"
+                               style="-fx-text-fill: #555555; -fx-font-size: 11px; -fx-min-width: 60;"/>
+                        <Label fx:id="lblDeposit" text="0 원"
+                               style="-fx-font-weight: bold; -fx-text-fill: #1565C0; -fx-font-size: 12px;"/>
+                    </HBox>
+
+                    <!-- 수량 입력 + ▲▼ 버튼 -->
+                    <HBox spacing="4" alignment="CENTER_LEFT">
+                        <Label text="수량 입력"
+                               style="-fx-text-fill: #555555; -fx-font-size: 11px; -fx-min-width: 60;"/>
+                        <TextField fx:id="tfBuyQty" promptText="0"
+                                   HBox.hgrow="ALWAYS"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold;
+                                          -fx-alignment: CENTER-RIGHT;"/>
+                        <!--
+                            화살표 버튼: 클릭 시 수량을 1씩 올리거나 내림
+                            VBox로 세로 적층
+                        -->
+                        <VBox spacing="1">
+                            <Button fx:id="btnQtyUp"   text="▲" prefWidth="28" prefHeight="18"
+                                    style="-fx-font-size: 9px; -fx-padding: 0; -fx-background-color: #DDDDDD;"/>
+                            <Button fx:id="btnQtyDown" text="▼" prefWidth="28" prefHeight="18"
+                                    style="-fx-font-size: 9px; -fx-padding: 0; -fx-background-color: #DDDDDD;"/>
+                        </VBox>
+                    </HBox>
+
+                    <!--
+                        예상 매수 요약 박스.
+                        기준 모드 + 선택가 × 수량 = 예상금액을 한눈에 표시.
+                        컨트롤러에서 lblBuyMode, lblCalcPrice, lblCalcQty, lblCalcAmount 를 갱신한다.
+                    -->
+                    <VBox spacing="4"
+                          style="-fx-background-color: #E8F5E9;
+                                 -fx-border-color: #A5D6A7;
+                                 -fx-border-width: 1;
+                                 -fx-border-radius: 6;
+                                 -fx-background-radius: 6;
+                                 -fx-padding: 10 12 10 12;">
+                        <Label fx:id="lblBuyMode" text="현재가 대비"
+                               style="-fx-text-fill: #388E3C; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <Label fx:id="lblCalcPrice"  text="-"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1A237E;"/>
+                            <Label text="×" style="-fx-text-fill: #555555; -fx-font-size: 13px;"/>
+                            <Label fx:id="lblCalcQty"    text="-"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1A237E;"/>
+                            <Label text="주  =" style="-fx-text-fill: #555555; -fx-font-size: 13px;"/>
+                            <Label fx:id="lblCalcAmount" text="-"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #B71C1C;"/>
+                            <Label text="원" style="-fx-text-fill: #555555; -fx-font-size: 12px;"/>
+                        </HBox>
+                    </VBox>
+
+                    <!-- 자동 매수 시작: 초록 (긍정적 액션) -->
+                    <Button fx:id="btnBuyStart" text="▶  자동 매수 시작" maxWidth="Infinity"
+                            style="-fx-background-color: #2E7D32; -fx-text-fill: #FFFFFF;
+                                   -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 8 0 8 0;"/>
+
+                    <!-- 중지 / 취소: 주황+빨강 (위험 액션) -->
+                    <HBox spacing="6">
+                        <Button fx:id="btnBuyStop"   text="■  자동매수 중지" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #E65100; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnBuyCancel" text="✕  매수 주문 취소(전량)" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #B71C1C; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                    </HBox>
+                </VBox>
+
+            </VBox>
+
+            <!-- 패널 구분선 -->
+            <Separator orientation="VERTICAL"/>
+
+            <!-- ──────────────────────────────────────────────────────── -->
+            <!-- 매도 영역                                                 -->
+            <!-- ──────────────────────────────────────────────────────── -->
+            <VBox HBox.hgrow="ALWAYS" prefWidth="0"
+                  style="-fx-background-color: #FFF6F6;">
+
+                <Label text="▼  매도 영역"
+                       maxWidth="Infinity"
+                       style="-fx-background-color: #FFCDD2; -fx-text-fill: #B71C1C;
+                              -fx-font-weight: bold; -fx-font-size: 13px;
+                              -fx-padding: 6 12 6 12;"/>
+
+                <GridPane hgap="16" vgap="10">
+                    <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="110" halignment="RIGHT"/>
+                        <ColumnConstraints minWidth="100" halignment="LEFT" hgrow="ALWAYS"/>
+                    </columnConstraints>
+
+                    <Label text="보유수량"        style="-fx-text-fill: #666666;" GridPane.rowIndex="0"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblHoldQty" text="-"
+                           style="-fx-font-weight: bold;"                          GridPane.rowIndex="0"  GridPane.columnIndex="1"/>
+
+                    <Label text="평균 매수가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="1"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblSellAvgBuyPrice" text="-"                    GridPane.rowIndex="1"  GridPane.columnIndex="1"/>
+
+                    <Separator GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+
+                    <Label text="목표 수익률"     style="-fx-text-fill: #666666;" GridPane.rowIndex="3"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblTargetRate" text="-"
+                           style="-fx-font-weight: bold; -fx-text-fill: #CC0000;"  GridPane.rowIndex="3"  GridPane.columnIndex="1"/>
+
+                    <Label text="목표 매도가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="4"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblTargetPrice" text="-"
+                           style="-fx-font-weight: bold; -fx-text-fill: #CC0000;"  GridPane.rowIndex="4"  GridPane.columnIndex="1"/>
+
+                    <Label text="손절 기준가"     style="-fx-text-fill: #666666;" GridPane.rowIndex="5"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblStopLossPrice" text="-"
+                           style="-fx-font-weight: bold; -fx-text-fill: #0000CC;"  GridPane.rowIndex="5"  GridPane.columnIndex="1"/>
+
+                    <Separator GridPane.rowIndex="6" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+
+                    <Label text="현재 수익률"     style="-fx-text-fill: #666666;" GridPane.rowIndex="7"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblCurrentRate" text="-"
+                           style="-fx-font-size: 15px; -fx-font-weight: bold;"     GridPane.rowIndex="7"  GridPane.columnIndex="1"/>
+
+                    <Label text="매도 주문 상태"  style="-fx-text-fill: #666666;" GridPane.rowIndex="8"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblSellOrderStatus" text="-"                    GridPane.rowIndex="8"  GridPane.columnIndex="1"/>
+
+                    <Label text="매도 체결 여부"  style="-fx-text-fill: #666666;" GridPane.rowIndex="9"  GridPane.columnIndex="0"/>
+                    <Label fx:id="lblSellFilled" text="-"                         GridPane.rowIndex="9"  GridPane.columnIndex="1"/>
+
+                    <Label text="미체결 수량"     style="-fx-text-fill: #666666;" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblUnfilledQty" text="-"                        GridPane.rowIndex="10" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <!-- 전체 너비 구분선 -->
+                <Separator/>
+
+                <!-- ── 매도 버튼 영역 ── -->
+                <VBox spacing="8">
+                    <padding><Insets top="10" right="12" bottom="12" left="12"/></padding>
+
+                    <!-- 방어 가격 지정 % 버튼 -->
+                    <Label text="방어 가격 지정" style="-fx-text-fill: #555555; -fx-font-size: 11px;"/>
+                    <HBox spacing="6">
+                        <Button fx:id="btnSell3Pct"  text=" 3%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #FFF3E0; -fx-text-fill: #BF360C; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnSell5Pct"  text=" 5%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #FFF3E0; -fx-text-fill: #BF360C; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnSell7Pct"  text=" 7%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #FFF3E0; -fx-text-fill: #BF360C; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnSell10Pct" text="10%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #BF360C; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                    </HBox>
+
+
+                    <!-- 자동 매도 시작: 빨강 -->
+                    <Button fx:id="btnSellStart" text="▶  자동 매도 시작" maxWidth="Infinity"
+                            style="-fx-background-color: #C62828; -fx-text-fill: #FFFFFF;
+                                   -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 8 0 8 0;"/>
+
+                    <!-- 전량 매도: 단독 강조 -->
+                    <Button fx:id="btnSellAll" text="💰  전량 매도" maxWidth="Infinity"
+                            style="-fx-background-color: #880E4F; -fx-text-fill: #FFFFFF;
+                                   -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 8 0 8 0;"/>
+
+                    <!-- 중지 / 취소 / 정정 -->
+                    <HBox spacing="6">
+                        <Button fx:id="btnSellStop"   text="■  자동매도 중지" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #E65100; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnSellCancel" text="✕  매도 주문 취소" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #B71C1C; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnSellAmend"  text="✎  매도 주문 정정" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                style="-fx-background-color: #4527A0; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                    </HBox>
+                </VBox>
+
+            </VBox>
+
+            <!-- 패널 구분선 -->
+            <Separator orientation="VERTICAL"/>
+
+            <!-- ──────────────────────────────────────────────────────── -->
+            <!-- 호가 영역                                                 -->
+            <!-- ──────────────────────────────────────────────────────── -->
+            <VBox HBox.hgrow="ALWAYS" prefWidth="0"
+                  style="-fx-background-color: #F6F8FF;">
+
+                <Label text="▼  호가 영역"
+                       maxWidth="Infinity"
+                       style="-fx-background-color: #BBDEFB; -fx-text-fill: #0D47A1;
+                              -fx-font-weight: bold; -fx-font-size: 13px;
+                              -fx-padding: 6 12 6 12;"/>
+
+                <VBox spacing="4" VBox.vgrow="ALWAYS">
+                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+
+                    <!-- 매도 10호가 테이블 -->
+                    <Label text="매 도 호 가"
+                           style="-fx-text-fill: #0000CC; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                    <!--
+                        컬럼은 StockDetailController.setupHokaTables()에서 코드로 생성.
+                        fx:id만 지정하고 FXML에는 컬럼 정의 없음.
+                    -->
+                    <TableView fx:id="askTable" prefHeight="190" VBox.vgrow="NEVER"/>
+
+                    <!-- 현재가 / 체결강도 바 -->
+                    <HBox alignment="CENTER_LEFT" spacing="8"
+                          style="-fx-background-color: #222233; -fx-padding: 5 10 5 10;">
+                        <Label text="현재가" style="-fx-text-fill: #999999; -fx-font-size: 11px;"/>
+                        <Label fx:id="lblHokaCurrentPrice" text="---,---"
+                               style="-fx-text-fill: #FFFF55; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                        <Label text="|" style="-fx-text-fill: #555555;"/>
+                        <Label text="체결강도" style="-fx-text-fill: #999999; -fx-font-size: 11px;"/>
+                        <Label fx:id="lblStrength" text="-"
+                               style="-fx-text-fill: #FFCC00; -fx-font-weight: bold;"/>
+                    </HBox>
+
+                    <!-- 매수 10호가 테이블 -->
+                    <Label text="매 수 호 가"
+                           style="-fx-text-fill: #CC0000; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                    <TableView fx:id="bidTable" prefHeight="190" VBox.vgrow="NEVER"/>
+
+                    <!-- 실시간 체결 내역 -->
+                    <Label text="실시간 체결 내역"
+                           style="-fx-text-fill: #555555; -fx-font-size: 11px; -fx-padding: 4 0 0 0;"/>
+                    <!--
+                        VBox.vgrow="ALWAYS" : 남은 수직 공간을 모두 채움
+                    -->
+                    <ListView fx:id="tradeList" VBox.vgrow="ALWAYS"/>
+                </VBox>
+
+            </VBox>
+
+        </HBox>
+    </center>
+
+</BorderPane>

@@ -3,11 +3,14 @@ package com.stockwin.stockwin;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Locale;
 
@@ -461,23 +464,35 @@ public class HelloController {
             }
         }
 
-        // 새 탭 생성
-        Tab detailTab = new Tab(stockName + " [" + stockCode + "]");
-        detailTab.setId(stockCode);   // 종목코드를 탭 식별자로 사용 (중복 방지 기준)
-        detailTab.setClosable(true);  // 사용자가 직접 닫을 수 있음
+        // stock-detail-view.fxml을 로드해서 상세 탭 콘텐츠로 사용
+        try {
+            // FXMLLoader: fxml 파일을 파싱해서 JavaFX 노드 트리를 반환한다
+            FXMLLoader loader = new FXMLLoader(
+                    HelloApplication.class.getResource("stock-detail-view.fxml")
+            );
+            Parent content = loader.load();
 
-        // 임시 내용 (나중에 상세 화면 fxml로 교체 예정)
-        StackPane content = new StackPane();
-        content.getChildren().add(new Label(stockName + " (" + stockCode + ") 상세 화면"));
-        detailTab.setContent(content);
+            // 로드된 fxml의 컨트롤러를 가져와서 종목 데이터 전달
+            StockDetailController detailCtrl = loader.getController();
+            detailCtrl.initData(stockCode, stockName);
 
-        mainTabPane.getTabs().add(detailTab);
-        mainTabPane.getSelectionModel().selectLast();  // 새 탭으로 포커스 이동
+            Tab detailTab = new Tab(stockName + " [" + stockCode + "]");
+            detailTab.setId(stockCode);  // 종목코드를 탭 식별자로 사용 (중복 방지 기준)
+            detailTab.setClosable(true);
+            detailTab.setContent(content);
 
-        // 주문 상세 탭에만 드래그 분리 기능 추가
-        // (탭 1~4는 closable=false이므로 makeDetachable을 호출하지 않음)
-        if (tabDetachUtil != null) {
-            tabDetachUtil.makeDetachable(detailTab);
+            mainTabPane.getTabs().add(detailTab);
+            mainTabPane.getSelectionModel().selectLast();
+
+            // 주문 상세 탭에만 드래그/더블클릭 분리 기능 추가
+            if (tabDetachUtil != null) {
+                tabDetachUtil.makeDetachable(detailTab);
+            }
+
+        } catch (IOException e) {
+            // fxml 파일을 찾지 못하거나 파싱 실패 시
+            System.err.println("상세 탭 로드 실패: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
