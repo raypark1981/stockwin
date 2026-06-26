@@ -54,8 +54,13 @@ public class StockDetailController {
     @FXML private Button btnBuyDirect;
     @FXML private TextField tfBuyPrice;
 
-    // 예상 매수 요약 박스
-    @FXML private Label lblBuyMode;
+    // 구매 금액 (호가 × 수량)
+    @FXML private Label lblBuyOrderPrice;
+    @FXML private Label lblBuyOrderQty;
+    @FXML private Label lblBuyOrderAmount;
+
+    // 목표 매도 조건 요약
+    @FXML private Label lblTargetCondition;
     @FXML private Label lblCalcPrice;
     @FXML private Label lblCalcQty;
     @FXML private Label lblCalcAmount;
@@ -64,6 +69,16 @@ public class StockDetailController {
     @FXML private Label lblDeposit;
     @FXML private Label lblRemaining;
     @FXML private Label lblMaxQty;
+
+    // 호가 조정
+    @FXML private Button btnHogaPlus;
+    @FXML private Button btnHogaMinus;
+    @FXML private Label  lblHogaPrice;
+
+    private long hogaPrice = 0; // 현재 호가 조정된 가격
+
+    // 자동매수 버튼
+    @FXML private Button btnBuyStart;
 
     // 수량 입력 + 증감 버튼
     @FXML private TextField tfBuyQty;
@@ -154,6 +169,8 @@ public class StockDetailController {
         setupBuyRateButtons();    // 수익률 % 버튼 토글 설정
         setupDefenseButtons();    // 손실방어율 % 버튼 토글 설정
         setupQtyButtons();        // 수량 ▲▼ 버튼
+        setupHogaButtons();       // 호가 +/- 버튼
+        setupBuyStartButton();    // 자동매수 시작 버튼
     }
 
     /**
@@ -184,7 +201,7 @@ public class StockDetailController {
                 applyBasePrice(btn);
             } else {
                 tfBuyPrice.clear();
-                lblBuyMode.setText("직접 입력");
+                lblTargetCondition.setText("직접 입력");
                 lblCalcPrice.setText("-");
             }
         }));
@@ -194,16 +211,38 @@ public class StockDetailController {
         String mode;
         if (activeBtn == btnBaseCurrentPrice) {
             tfBuyPrice.setText(lblBuyCurrentPrice.getText());
-            mode = "현재가 대비(수익률)";
+            mode = "목표 매도 조건 (현재가 대비)";
         } else {
             tfBuyPrice.setText(lblBuyStartPrice.getText());
-            mode = "시작 예상가 대비(수익률)";
+            mode = "목표 매도 조건 (시작 예상가 대비)";
         }
-        lblBuyMode.setText(mode);
+        lblTargetCondition.setText(mode);
+        // 기준가 변경 시 호가 가격도 초기화
+        syncHogaFromBase();
         recalcBuyPrice();
     }
 
-    /** 기준가(tfBuyPrice) × (1 - 수익률%) → lblCalcPrice 갱신 후 요약 재계산 */
+    private void syncHogaFromBase() {
+        String raw = tfBuyPrice.getText().replaceAll("[^0-9]", "");
+        hogaPrice = raw.isEmpty() ? 0 : Long.parseLong(raw);
+        lblHogaPrice.setText(raw.isEmpty() ? "-" : numFmt.format(hogaPrice));
+    }
+
+    private void setupHogaButtons() {
+        btnHogaPlus.setOnAction(e -> adjustHoga(1000));
+        btnHogaMinus.setOnAction(e -> adjustHoga(-1000));
+    }
+
+    private void adjustHoga(long delta) {
+        if (hogaPrice <= 0) {
+            syncHogaFromBase();
+        }
+        hogaPrice = Math.max(0, hogaPrice + delta);
+        lblHogaPrice.setText(numFmt.format(hogaPrice));
+        recalcBuyPriceFrom(hogaPrice); // tfBuyPrice 건드리지 않고 직접 재계산
+    }
+
+    /** 기준가(tfBuyPrice) × (1 + 수익률%) → lblCalcPrice 갱신 후 요약 재계산 */
     private void recalcBuyPrice() {
         String raw = tfBuyPrice.getText().replaceAll("[^0-9]", "");
         if (raw.isEmpty()) {
@@ -212,12 +251,22 @@ public class StockDetailController {
             return;
         }
         try {
-            long base = Long.parseLong(raw);
-            long calc = Math.round(base * (1.0 - selectedBuyRatePct / 100.0));
-            lblCalcPrice.setText(numFmt.format(calc));
+            recalcBuyPriceFrom(Long.parseLong(raw));
         } catch (NumberFormatException ex) {
             lblCalcPrice.setText("-");
         }
+        recalcSummary();
+    }
+
+    private long parseLongSafe(String text) {
+        String raw = text.replaceAll("[^0-9]", "");
+        try { return raw.isEmpty() ? 0 : Long.parseLong(raw); }
+        catch (NumberFormatException e) { return 0; }
+    }
+
+    private void recalcBuyPriceFrom(long base) {
+        long calc = Math.round(base * (1.0 + selectedBuyRatePct / 100.0));
+        lblCalcPrice.setText(numFmt.format(calc));
         recalcSummary();
     }
 
@@ -228,33 +277,37 @@ public class StockDetailController {
         String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
         long deposit = depositRaw.isEmpty() ? 0 : Long.parseLong(depositRaw);
 
-        // 주문가능수량: 예수금 ÷ 계산가격 (수량과 무관하게 항상 갱신)
-        if (!priceRaw.isEmpty()) {
-            try {
-                long price = Long.parseLong(priceRaw);
-                lblMaxQty.setText(price > 0 ? numFmt.format(deposit / price) + " 주" : "-");
-            } catch (NumberFormatException ex) {
-                lblMaxQty.setText("-");
-            }
+        // 주문가능수량: 예수금 ÷ 실제 매수가(호가 조정가 우선, 없으면 tfBuyPrice)
+        long buyPrice = hogaPrice > 0 ? hogaPrice : parseLongSafe(tfBuyPrice.getText());
+        lblMaxQty.setText(buyPrice > 0 ? numFmt.format(deposit / buyPrice) + " 주" : "-");
+
+        long qty = parseLongSafe(qtyRaw);
+
+        // 구매 금액: 호가 × 수량
+        if (buyPrice > 0 && qty > 0) {
+            long orderAmount = buyPrice * qty;
+            lblBuyOrderPrice.setText(numFmt.format(buyPrice));
+            lblBuyOrderQty.setText(numFmt.format(qty));
+            lblBuyOrderAmount.setText(numFmt.format(orderAmount));
+            lblRemaining.setText(numFmt.format(deposit - orderAmount) + " 원");
         } else {
-            lblMaxQty.setText("-");
+            lblBuyOrderPrice.setText(buyPrice > 0 ? numFmt.format(buyPrice) : "-");
+            lblBuyOrderQty.setText("-");
+            lblBuyOrderAmount.setText("-");
+            lblRemaining.setText(numFmt.format(deposit) + " 원");
         }
 
         if (priceRaw.isEmpty() || qtyRaw.isEmpty()) {
             lblCalcQty.setText(qtyRaw.isEmpty() ? "-" : qtyRaw);
             lblCalcAmount.setText("-");
-            lblRemaining.setText(numFmt.format(deposit) + " 원");
             return;
         }
         try {
-            long price     = Long.parseLong(priceRaw);
-            long qty       = Long.parseLong(qtyRaw);
-            long amount    = price * qty;
-            long remaining = deposit - amount;
+            long price  = Long.parseLong(priceRaw);
+            long amount = price * qty;
 
             lblCalcQty.setText(numFmt.format(qty));
             lblCalcAmount.setText(numFmt.format(amount) + " 원");
-            lblRemaining.setText(numFmt.format(remaining) + " 원");
         } catch (NumberFormatException ex) {
             lblCalcQty.setText("-");
             lblCalcAmount.setText("-");
@@ -333,6 +386,51 @@ public class StockDetailController {
         }
 
         tfBuyQty.setText(String.valueOf(qty));
+    }
+
+    private void setupBuyStartButton() {
+        btnBuyStart.setOnAction(e -> showBuyConfirm());
+    }
+
+    private void showBuyConfirm() {
+        String orderPrice  = lblBuyOrderPrice.getText();
+        String orderQty    = lblBuyOrderQty.getText();
+        String orderAmount = lblBuyOrderAmount.getText();
+        String targetCond  = lblTargetCondition.getText();
+        String targetPrice = lblCalcPrice.getText();
+
+        if (orderPrice.equals("-") || orderQty.equals("-") || orderAmount.equals("-")) {
+            javafx.scene.control.Alert warn = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.WARNING);
+            warn.setTitle("매수 불가");
+            warn.setHeaderText(null);
+            warn.setContentText("호가 가격과 수량을 먼저 설정해주세요.");
+            warn.showAndWait();
+            return;
+        }
+
+        String content = String.format(
+                "[ 구매 금액 ]\n" +
+                "  매수 가격    :  %s 원\n" +
+                "  매수 수량    :  %s 주\n" +
+                "  총 매수 금액  :  %s 원\n\n" +
+                "[ %s ]\n" +
+                "  목표 매도가  :  %s 원\n\n" +
+                "위 조건으로 자동 매수를 시작하시겠습니까?",
+                orderPrice, orderQty, orderAmount, targetCond, targetPrice);
+
+        javafx.scene.control.Alert confirm = new javafx.scene.control.Alert(
+                javafx.scene.control.Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("자동 매수 확인");
+        confirm.setHeaderText("매수 주문 확인");
+        confirm.setContentText(content);
+
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == javafx.scene.control.ButtonType.OK) {
+                // TODO: 실제 매수 로직 연결
+                System.out.println("[자동매수 시작] " + orderPrice + "원 × " + orderQty + "주 = " + orderAmount + "원");
+            }
+        });
     }
 
     /**
@@ -480,8 +578,8 @@ public class StockDetailController {
         updateStatus("감시중");
 
         // ── 매수 영역 ──
-        lblBuyStartPrice.setText("57,000");
-        lblBuyCurrentPrice.setText("57,200");
+        lblBuyStartPrice.setText("50,000");
+        lblBuyCurrentPrice.setText("51,000");
         lblBuyOrderStatus.setText("대기");
         lblBuyFilled.setText("미체결");
         lblAvgBuyPrice.setText("-");

@@ -201,12 +201,26 @@
                                           -fx-text-fill: #CC0000; -fx-alignment: CENTER-RIGHT;"/>
                     </HBox>
 
+                    <!-- 호가 조정: -/+ 버튼으로 1호가씩 이동 -->
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <Label text="호가" style="-fx-text-fill: #555555; -fx-font-size: 11px; -fx-min-width: 60;"/>
+                        <Button fx:id="btnHogaMinus" text=" - "
+                                style="-fx-background-color: #BBDEFB; -fx-text-fill: #1565C0;
+                                       -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 2 10 2 10;"/>
+                        <Label fx:id="lblHogaPrice" text="-"
+                               style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #CC0000;
+                                      -fx-min-width: 80; -fx-alignment: CENTER;"/>
+                        <Button fx:id="btnHogaPlus" text=" + "
+                                style="-fx-background-color: #FFCDD2; -fx-text-fill: #C62828;
+                                       -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 2 10 2 10;"/>
+                    </HBox>
+
                     <!--
                         가격 지정 % 버튼.
                         HBox.hgrow="ALWAYS" + maxWidth="Infinity" : 4버튼이 너비 균등 분할
                     -->
                     <HBox spacing="6">
-                        <Label text="수익률" style="-fx-text-fill: #1565C0; -fx-font-size: 11px;"/>
+                        <Label text="목표 수익률" style="-fx-text-fill: #1565C0; -fx-font-size: 11px;"/>
                         <Button fx:id="btnBuy3Pct"  text=" 3%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
                                 style="-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;"/>
                         <Button fx:id="btnBuy5Pct"  text=" 5%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
@@ -290,14 +304,33 @@
                         기준 모드 + 선택가 × 수량 = 예상금액을 한눈에 표시.
                         컨트롤러에서 lblBuyMode, lblCalcPrice, lblCalcQty, lblCalcAmount 를 갱신한다.
                     -->
-                    <VBox spacing="4"
+                    <VBox spacing="6"
                           style="-fx-background-color: #E8F5E9;
                                  -fx-border-color: #A5D6A7;
                                  -fx-border-width: 1;
                                  -fx-border-radius: 6;
                                  -fx-background-radius: 6;
                                  -fx-padding: 10 12 10 12;">
-                        <Label fx:id="lblBuyMode" text="현재가 대비"
+
+                        <!-- 구매 금액: 호가 × 수량 = 실제 구매금액 -->
+                        <Label text="구매 금액"
+                               style="-fx-text-fill: #1B5E20; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <Label fx:id="lblBuyOrderPrice" text="-"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #CC0000;"/>
+                            <Label text="×" style="-fx-text-fill: #555555; -fx-font-size: 13px;"/>
+                            <Label fx:id="lblBuyOrderQty" text="-"
+                                   style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #CC0000;"/>
+                            <Label text="주  =" style="-fx-text-fill: #555555; -fx-font-size: 13px;"/>
+                            <Label fx:id="lblBuyOrderAmount" text="-"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1B5E20;"/>
+                            <Label text="원" style="-fx-text-fill: #555555; -fx-font-size: 12px;"/>
+                        </HBox>
+
+                        <Separator/>
+
+                        <!-- 목표 매도 조건: 목표가 × 수량 = 목표 금액 -->
+                        <Label fx:id="lblTargetCondition" text="목표 매도 조건"
                                style="-fx-text-fill: #388E3C; -fx-font-size: 11px; -fx-font-weight: bold;"/>
                         <HBox spacing="6" alignment="CENTER_LEFT">
                             <Label fx:id="lblCalcPrice"  text="-"

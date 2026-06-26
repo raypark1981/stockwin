@@ -332,9 +332,9 @@ public class HelloController {
 
         // 정의한 컬럼들을 순서대로 테이블에 추가
         stockTable.getColumns().addAll(
-                codeCol, nameCol, prevCloseCol, changeRateCol,
+                codeCol, nameCol, addBtnCol, prevCloseCol, changeRateCol,
                 volumeCol, marketCapCol, perCol, floatingCol,
-                volumeRateCol, sectorCol, warningCol, addBtnCol
+                volumeRateCol, sectorCol, warningCol
         );
     }
 
