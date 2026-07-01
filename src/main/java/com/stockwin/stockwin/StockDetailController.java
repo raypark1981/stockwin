@@ -64,6 +64,7 @@ public class StockDetailController {
     @FXML private Label lblCalcPrice;
     @FXML private Label lblCalcQty;
     @FXML private Label lblCalcAmount;
+    @FXML private Label lblNetProfit;
 
     // 예수금 / 잔액 / 주문가능수량
     @FXML private Label lblDeposit;
@@ -75,7 +76,8 @@ public class StockDetailController {
     @FXML private Button btnHogaMinus;
     @FXML private Label  lblHogaPrice;
 
-    private long hogaPrice = 0; // 현재 호가 조정된 가격
+    private long hogaPrice = 0;  // 현재 호가 조정된 가격
+    private long calcPrice = 0;  // 목표 매도가 (lblCalcPrice 파싱 없이 직접 참조)
 
     // 자동매수 버튼
     @FXML private Button btnBuyStart;
@@ -85,7 +87,12 @@ public class StockDetailController {
     @FXML private Button btnQtyUp;
     @FXML private Button btnQtyDown;
 
-    private int selectedBuyRatePct = 5; // 수익률 % 버튼 선택값 (기본 5%)
+    private double selectedBuyRatePct = 5.0; // 수익률 % 버튼 선택값 (기본 5.0%)
+
+    // 수익률 미세 조정 버튼 (+0.2% / -0.2%)
+    @FXML private Button btnRateUp;
+    @FXML private Button btnRateDown;
+    @FXML private Label  lblRatePct;
 
     // 수익률 % 버튼 (토글 그룹으로 동작)
     @FXML private Button btnBuy3Pct;
@@ -98,6 +105,13 @@ public class StockDetailController {
     @FXML private Button btnDefense5Pct;
     @FXML private Button btnDefense7Pct;
     @FXML private Button btnDefense10Pct;
+
+    // 손실방어율 미세 조정 버튼 (+0.2% / -0.2%)
+    @FXML private Button btnDefenseRateUp;
+    @FXML private Button btnDefenseRateDown;
+    @FXML private Label  lblDefensePct;
+
+    private double selectedDefenseRatePct = 7.0;
 
     // =========================================================================
     // @FXML 주입: 매도 영역
@@ -170,7 +184,9 @@ public class StockDetailController {
         setupDefenseButtons();    // 손실방어율 % 버튼 토글 설정
         setupQtyButtons();        // 수량 ▲▼ 버튼
         setupHogaButtons();       // 호가 +/- 버튼
-        setupBuyStartButton();    // 자동매수 시작 버튼
+        setupRateAdjustButtons();    // 수익률 ▲▼ 버튼
+        setupDefenseAdjustButtons(); // 손실방어율 ▲▼ 버튼
+        setupBuyStartButton();       // 자동매수 시작 버튼
     }
 
     /**
@@ -265,14 +281,13 @@ public class StockDetailController {
     }
 
     private void recalcBuyPriceFrom(long base) {
-        long calc = Math.round(base * (1.0 + selectedBuyRatePct / 100.0));
-        lblCalcPrice.setText(numFmt.format(calc));
+        calcPrice = Math.round(base * (1.0 + selectedBuyRatePct / 100.0));
+        lblCalcPrice.setText(numFmt.format(calcPrice) + " (" + String.format("%.1f%%", selectedBuyRatePct) + ")");
         recalcSummary();
     }
 
-    /** lblCalcPrice × tfBuyQty → lblCalcAmount, lblCalcQty, lblRemaining 갱신 */
+    /** calcPrice × tfBuyQty → lblCalcAmount, lblCalcQty, lblRemaining 갱신 */
     private void recalcSummary() {
-        String priceRaw   = lblCalcPrice.getText().replaceAll("[^0-9]", "");
         String qtyRaw     = tfBuyQty.getText().replaceAll("[^0-9]", "");
         String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
         long deposit = depositRaw.isEmpty() ? 0 : Long.parseLong(depositRaw);
@@ -297,54 +312,112 @@ public class StockDetailController {
             lblRemaining.setText(numFmt.format(deposit) + " 원");
         }
 
-        if (priceRaw.isEmpty() || qtyRaw.isEmpty()) {
+        if (calcPrice <= 0 || qtyRaw.isEmpty()) {
             lblCalcQty.setText(qtyRaw.isEmpty() ? "-" : qtyRaw);
             lblCalcAmount.setText("-");
+            lblNetProfit.setText("-");
             return;
         }
-        try {
-            long price  = Long.parseLong(priceRaw);
-            long amount = price * qty;
 
-            lblCalcQty.setText(numFmt.format(qty));
-            lblCalcAmount.setText(numFmt.format(amount) + " 원");
-        } catch (NumberFormatException ex) {
-            lblCalcQty.setText("-");
-            lblCalcAmount.setText("-");
+        long amount = calcPrice * qty;
+        lblCalcQty.setText(numFmt.format(qty));
+        lblCalcAmount.setText(numFmt.format(amount) + " 원");
+
+        // 순이익금: 목표금액 - 구매금액
+        long orderAmount = (buyPrice > 0 && qty > 0) ? buyPrice * qty : 0;
+        if (orderAmount > 0) {
+            lblNetProfit.setText(numFmt.format(amount - orderAmount));
+        } else {
+            lblNetProfit.setText("-");
         }
     }
 
     private void setupBuyRateButtons() {
         List<Button> allBtns = List.of(btnBuy3Pct, btnBuy5Pct, btnBuy7Pct, btnBuy10Pct);
-        List<Integer>    rates = List.of(3, 5, 7, 10);
+        List<Double>  rates   = List.of(3.0, 5.0, 7.0, 10.0);
 
         allBtns.forEach(btn -> btn.setStyle(RATE_BTN_OFF));
         btnBuy5Pct.setStyle(RATE_BTN_ON);
 
         for (int i = 0; i < allBtns.size(); i++) {
-            int rate = rates.get(i);
-            Button btn = allBtns.get(i);
+            double rate = rates.get(i);
+            Button btn  = allBtns.get(i);
             btn.setOnAction(e -> {
                 allBtns.forEach(b -> b.setStyle(RATE_BTN_OFF));
                 btn.setStyle(RATE_BTN_ON);
                 selectedBuyRatePct = rate;
+                updateRateLabel();
                 recalcBuyPrice();
             });
         }
     }
 
+    private void setupRateAdjustButtons() {
+        btnRateUp.setOnAction(e   -> adjustRate( 0.2));
+        btnRateDown.setOnAction(e -> adjustRate(-0.2));
+    }
+
+    private void adjustRate(double delta) {
+        double newRate = Math.round((selectedBuyRatePct + delta) * 10.0) / 10.0;
+        selectedBuyRatePct = Math.max(0.2, newRate);
+        syncRateButtons();
+        updateRateLabel();
+        recalcBuyPrice();
+    }
+
+    private void syncRateButtons() {
+        List<Button> allBtns = List.of(btnBuy3Pct, btnBuy5Pct, btnBuy7Pct, btnBuy10Pct);
+        List<Double>  presets = List.of(3.0, 5.0, 7.0, 10.0);
+        for (int i = 0; i < allBtns.size(); i++) {
+            allBtns.get(i).setStyle(selectedBuyRatePct == presets.get(i) ? RATE_BTN_ON : RATE_BTN_OFF);
+        }
+    }
+
+    private void updateRateLabel() {
+        lblRatePct.setText(String.format("%.1f%%", selectedBuyRatePct));
+    }
+
     private void setupDefenseButtons() {
         List<Button> allBtns = List.of(btnDefense3Pct, btnDefense5Pct, btnDefense7Pct, btnDefense10Pct);
+        List<Double>  rates   = List.of(3.0, 5.0, 7.0, 10.0);
 
-        // 초기 상태: 모두 비활성 후 7%만 활성
         allBtns.forEach(btn -> btn.setStyle(DEFENSE_BTN_OFF));
         btnDefense7Pct.setStyle(DEFENSE_BTN_ON);
 
-        // 각 버튼 클릭 시 → 자신만 활성, 나머지 비활성
-        allBtns.forEach(btn -> btn.setOnAction(e -> {
-            allBtns.forEach(b -> b.setStyle(DEFENSE_BTN_OFF));
-            btn.setStyle(DEFENSE_BTN_ON);
-        }));
+        for (int i = 0; i < allBtns.size(); i++) {
+            double rate = rates.get(i);
+            Button btn  = allBtns.get(i);
+            btn.setOnAction(e -> {
+                allBtns.forEach(b -> b.setStyle(DEFENSE_BTN_OFF));
+                btn.setStyle(DEFENSE_BTN_ON);
+                selectedDefenseRatePct = rate;
+                updateDefenseLabel();
+            });
+        }
+    }
+
+    private void setupDefenseAdjustButtons() {
+        btnDefenseRateUp.setOnAction(e   -> adjustDefenseRate( 0.2));
+        btnDefenseRateDown.setOnAction(e -> adjustDefenseRate(-0.2));
+    }
+
+    private void adjustDefenseRate(double delta) {
+        double newRate = Math.round((selectedDefenseRatePct + delta) * 10.0) / 10.0;
+        selectedDefenseRatePct = Math.max(0.2, newRate);
+        syncDefenseButtons();
+        updateDefenseLabel();
+    }
+
+    private void syncDefenseButtons() {
+        List<Button> allBtns = List.of(btnDefense3Pct, btnDefense5Pct, btnDefense7Pct, btnDefense10Pct);
+        List<Double>  presets = List.of(3.0, 5.0, 7.0, 10.0);
+        for (int i = 0; i < allBtns.size(); i++) {
+            allBtns.get(i).setStyle(selectedDefenseRatePct == presets.get(i) ? DEFENSE_BTN_ON : DEFENSE_BTN_OFF);
+        }
+    }
+
+    private void updateDefenseLabel() {
+        lblDefensePct.setText(String.format("%.1f%%", selectedDefenseRatePct));
     }
 
     private void setupQtyButtons() {
@@ -353,14 +426,12 @@ public class StockDetailController {
             if (!newText.matches("[0-9]*")) return null;
             if (newText.isEmpty()) return change;
 
-            String priceRaw   = lblCalcPrice.getText().replaceAll("[^0-9]", "");
             String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
-            if (!priceRaw.isEmpty() && !depositRaw.isEmpty()) {
+            if (calcPrice > 0 && !depositRaw.isEmpty()) {
                 try {
-                    long price   = Long.parseLong(priceRaw);
                     long deposit = Long.parseLong(depositRaw);
                     long qty     = Long.parseLong(newText);
-                    if (price > 0 && qty * price > deposit) return null; // 예수금 초과 차단
+                    if (qty * calcPrice > deposit) return null; // 예수금 초과 차단
                 } catch (NumberFormatException ignored) {}
             }
             return change;
@@ -375,13 +446,11 @@ public class StockDetailController {
         qty = Math.max(0, qty + delta);
 
         // ▲ 버튼에도 예수금 초과 제한 적용
-        String priceRaw   = lblCalcPrice.getText().replaceAll("[^0-9]", "");
         String depositRaw = lblDeposit.getText().replaceAll("[^0-9]", "");
-        if (!priceRaw.isEmpty() && !depositRaw.isEmpty()) {
+        if (calcPrice > 0 && !depositRaw.isEmpty()) {
             try {
-                long price   = Long.parseLong(priceRaw);
                 long deposit = Long.parseLong(depositRaw);
-                if (price > 0 && qty * price > deposit) return;
+                if (qty * calcPrice > deposit) return;
             } catch (NumberFormatException ignored) {}
         }
 

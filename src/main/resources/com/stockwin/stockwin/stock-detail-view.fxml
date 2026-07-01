@@ -219,8 +219,9 @@
                         가격 지정 % 버튼.
                         HBox.hgrow="ALWAYS" + maxWidth="Infinity" : 4버튼이 너비 균등 분할
                     -->
-                    <HBox spacing="6">
+                    <HBox spacing="6" alignment="CENTER_LEFT">
                         <Label text="목표 수익률" style="-fx-text-fill: #1565C0; -fx-font-size: 11px;"/>
+
                         <Button fx:id="btnBuy3Pct"  text=" 3%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
                                 style="-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;"/>
                         <Button fx:id="btnBuy5Pct"  text=" 5%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
@@ -229,10 +230,19 @@
                                 style="-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: bold;"/>
                         <Button fx:id="btnBuy10Pct" text="10%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
                                 style="-fx-background-color: #1565C0; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+
+                        <Label fx:id="lblRatePct" text="5.0%"
+                               style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #1565C0; -fx-min-width: 42; -fx-alignment: CENTER-RIGHT;"/>
+                        <VBox spacing="1">
+                            <Button fx:id="btnRateUp"   text="▲" prefWidth="28" prefHeight="18"
+                                    style="-fx-font-size: 9px; -fx-padding: 0; -fx-background-color: #BBDEFB;"/>
+                            <Button fx:id="btnRateDown" text="▼" prefWidth="28" prefHeight="18"
+                                    style="-fx-font-size: 9px; -fx-padding: 0; -fx-background-color: #BBDEFB;"/>
+                        </VBox>
                     </HBox>
 
 
-                    <HBox spacing="6">
+                    <HBox spacing="6" alignment="CENTER_LEFT">
                         <Label text="손실방어율" style="-fx-text-fill: #E65100; -fx-font-size: 11px; -fx-font-weight: bold;"/>
                         <Button fx:id="btnDefense3Pct"  text=" 3%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
                                 style="-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold;"/>
@@ -242,6 +252,14 @@
                                 style="-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold;"/>
                         <Button fx:id="btnDefense10Pct" text="10%" maxWidth="Infinity" HBox.hgrow="ALWAYS"
                                 style="-fx-background-color: #E65100; -fx-text-fill: #FFFFFF; -fx-font-weight: bold;"/>
+                        <Label fx:id="lblDefensePct" text="7.0%"
+                               style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #E65100; -fx-min-width: 42; -fx-alignment: CENTER-RIGHT;"/>
+                        <VBox spacing="1">
+                            <Button fx:id="btnDefenseRateUp"   text="▲" prefWidth="28" prefHeight="18"
+                                    style="-fx-font-size: 9px; -fx-padding: 0; -fx-background-color: #FFE0B2;"/>
+                            <Button fx:id="btnDefenseRateDown" text="▼" prefWidth="28" prefHeight="18"
+                                    style="-fx-font-size: 9px; -fx-padding: 0; -fx-background-color: #FFE0B2;"/>
+                        </VBox>
                     </HBox>
                     <!-- 구분선 -->
                     <Separator/>
@@ -341,6 +359,17 @@
                             <Label text="주  =" style="-fx-text-fill: #555555; -fx-font-size: 13px;"/>
                             <Label fx:id="lblCalcAmount" text="-"
                                    style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #B71C1C;"/>
+                            <Label text="원" style="-fx-text-fill: #555555; -fx-font-size: 12px;"/>
+                        </HBox>
+
+                        <Separator/>
+
+                        <!-- 순이익금: 목표금액 - 구매금액 -->
+                        <Label text="순이익금 (목표 - 구매)"
+                               style="-fx-text-fill: #E65100; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <Label fx:id="lblNetProfit" text="-"
+                                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #E65100;"/>
                             <Label text="원" style="-fx-text-fill: #555555; -fx-font-size: 12px;"/>
                         </HBox>
                     </VBox>
